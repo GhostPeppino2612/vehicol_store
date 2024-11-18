@@ -1,17 +1,21 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Container, Row, Col } from "react-bootstrap";
 import { VeicoliFilter } from "./VeicoliFilter";
 import { VeicoloCard } from "./VeicoloCard";
+import { AcquistoModal } from "./AcquistoModal";
 import { RootState } from "../types/types";
 import { SET_VEICOLI, SET_FILTERS, UPDATE_VEICOLO } from "../redux/actions/actions";
-import { Stato } from "../DB";
+import { Stato, Veicolo } from "../DB";
 import { sendPurchaseEmail } from "./emailService";
 
 export const VeicoliUser: React.FC = () => {
   const dispatch = useDispatch();
   const { veicoli, filteredVeicoli, filters } = useSelector((state: RootState) => state.veicoli);
   const user = useSelector((state: RootState) => state.auth.user);
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedVeicolo, setSelectedVeicolo] = useState<Veicolo | null>(null);
 
   useEffect(() => {
     const veicoliDisponibili = veicoli.filter(v => v.stato === Stato.VENDESI);
@@ -22,20 +26,30 @@ export const VeicoliUser: React.FC = () => {
     dispatch({ type: SET_FILTERS, payload: newFilters });
   };
 
-  const handleAcquista = async (veicolo: typeof veicoli[0]) => {
-    if (!user) return;
+  const handleAcquistaClick = (veicolo: Veicolo) => {
+    setSelectedVeicolo(veicolo);
+    setShowModal(true);
+  };
+
+  const handleConfirmAcquisto = async (email: string) => {
+    if (!user || !selectedVeicolo) return;
 
     const veicoloAggiornato = {
-      ...veicolo,
+      ...selectedVeicolo,
       stato: Stato.VENDUTO,
-      proprietario: user.username
+      proprietario: user.username,
     };
 
     try {
-      await sendPurchaseEmail(user.username, veicoloAggiornato);
-      dispatch({ type: UPDATE_VEICOLO, payload: veicoloAggiornato });
+      await sendPurchaseEmail(user.username, veicoloAggiornato, email);
+     // eventualmente: dispatch({ type: UPDATE_VEICOLO, payload: veicoloAggiornato });
+      alert("Acquisto completato con successo!");
     } catch (error) {
       console.error("Errore durante l'acquisto:", error);
+      alert("Errore durante l'acquisto.");
+    } finally {
+      setShowModal(false);
+      setSelectedVeicolo(null);
     }
   };
 
@@ -48,11 +62,17 @@ export const VeicoliUser: React.FC = () => {
           <Col key={idx}>
             <VeicoloCard
               veicolo={veicolo}
-              onAcquista={() => handleAcquista(veicolo)}
+              onAcquista={() => handleAcquistaClick(veicolo)}
             />
           </Col>
         ))}
       </Row>
+      <AcquistoModal
+        show={showModal}
+        handleClose={() => setShowModal(false)}
+        handleConfirm={handleConfirmAcquisto}
+        veicolo={selectedVeicolo}
+      />
     </Container>
   );
 };

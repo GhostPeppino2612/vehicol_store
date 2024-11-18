@@ -5,7 +5,7 @@ const MAILGUN_API_KEY = process.env.REACT_APP_MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.REACT_APP_MAILGUN_DOMAIN;
 const MAILGUN_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
 
-export const sendPurchaseEmail = async (username: string, veicolo: Veicolo) => {
+export const sendPurchaseEmail = async (username: string, veicolo: Veicolo, email: string) => {
   const emailContent = `
     Gentile ${username},
 
@@ -27,7 +27,7 @@ export const sendPurchaseEmail = async (username: string, veicolo: Veicolo) => {
 
   const formData = new URLSearchParams();
   formData.append("from", `Concessionario <noreply@${MAILGUN_DOMAIN}>`);
-  formData.append("to", "giuseacqua6@gmail.com"); // Cambiare l'indirizzo
+  formData.append("to", email);
   formData.append("subject", "Conferma Acquisto Veicolo");
   formData.append("text", emailContent);
 
